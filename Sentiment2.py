@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from textblob import TextBlob
 import numpy as np
 import base64
+import pandas as pd
 
 
 def get_base64(bin_file):
@@ -21,28 +22,21 @@ def set_background(png_file):
     background-size: cover;
     color: gold; /* Change font color to purple */
     background-attachment: local;
-    background-position: auto
-    }
-    body {
-        background-color: #f2f2f2; /* Use your preferred shade of gray */
+    background-position: auto;
     }
     </style>
-
-       <style>
-
-
     ''' % bin_str
     st.markdown(page_bg_img, unsafe_allow_html=True)
 
 
-set_background("senti1.png")
+set_background('senti1.png')
 
 # Define the Streamlit app title and description
 st.title("Sentiment Analysis tool and Word Cloud")
-st.write("This app allows you to analyze text data using Word Cloud and Sentiment Analysis. This tool is unique because of its its ability to dissect each row of your text with insights and emotions.")
+st.write("This app allows you to analyze text data using Word Cloud and Sentiment Analysis. This tool is unique as it dissect each row of your text with insights and emotions.")
 
 # Define user instructions and definitions
-st.header("User's Guide")
+st.header("User Guide")
 st.markdown("1. Paste Text: You can paste your text data into the text box below.")
 st.markdown("2. Upload Data: Alternatively, you can upload a text file.")
 st.markdown("3. Choose Analysis:")
@@ -51,7 +45,7 @@ st.markdown("   - Select 'Sentiment Analysis' to get the sentiment of the text (
 st.markdown("4. Click 'Analyze' to perform the selected analysis.")
 
 # Text input
-st.subheader("Input Text Data (Paste or upload your text file)")
+st.subheader("Input Text Data")
 input_text = st.text_area("Paste your text here:")
 
 # File upload
@@ -73,23 +67,28 @@ def generate_wordcloud(text):
 
 # Function to perform sentiment analysis and create colorful visualization
 def perform_sentiment_analysis(text):
-    blob = TextBlob(text)
-    sentiment = blob.sentiment.polarity
+    rows = text.split('\n')
+    sentiment_results = []
+    for i, row in enumerate(rows):
+        blob = TextBlob(row)
+        sentiment = blob.sentiment.polarity
+        if sentiment > 0:
+            color = "green"
+            emoji = "😃"
+            sentiment_label = "Positive"
+        elif sentiment < 0:
+            color = "red"
+            emoji = "😞"
+            sentiment_label = "Negative"
+        else:
+            color = "yellow"
+            emoji = "😐"
+            sentiment_label = "Neutral"
 
-    if sentiment > 0:
-        color = "green"
-        emoji = "😃"
-        sentiment_label = "Positive"
-    elif sentiment < 0:
-        color = "red"
-        emoji = "😞"
-        sentiment_label = "Negative"
-    else:
-        color = "yellow"
-        emoji = "😐"
-        sentiment_label = "Neutral"
+        sentiment_results.append([i + 1, sentiment, sentiment_label, emoji, color])
 
-    return sentiment, color, emoji, sentiment_label
+    return pd.DataFrame(sentiment_results,
+                        columns=["Row", "Polarity", "Sentiment", "Sentiment Emoji", "Sentiment Color"])
 
 
 # Analyze button
@@ -104,42 +103,30 @@ if st.button("Analyze"):
                     generate_wordcloud(text)
         elif analysis_option == "Sentiment Analysis":
             if input_text:
-                sentiment, color, emoji, sentiment_label = perform_sentiment_analysis(input_text)
                 st.subheader("Sentiment Analysis Result")
-                st.write(f"Polarity: {sentiment}")
-                st.write(f"Sentiment: {emoji}", unsafe_allow_html=True)
-                st.markdown(f'<p style="color:{color};font-size:20px;">Sentiment Color</p>', unsafe_allow_html=True)
+                sentiment_results = perform_sentiment_analysis(input_text)
+                st.write(sentiment_results)
+
+                # Visualize the count and frequency of sentiment results
+                sentiment_counts = sentiment_results["Sentiment"].value_counts()
+                st.subheader("Sentiment Distribution")
+                st.bar_chart(sentiment_counts)
             else:
                 with uploaded_file:
                     text = uploaded_file.read().decode("utf-8")
-                    sentiment, color, emoji, sentiment_label = perform_sentiment_analysis(text)
                     st.subheader("Sentiment Analysis Result")
-                    st.write(f"Polarity: {sentiment}")
-                    st.write(f"Sentiment: {emoji}", unsafe_allow_html=True)
-                    st.markdown(f'<p style="color:{color};font-size:20px;">Sentiment Color</p>', unsafe_allow_html=True)
+                    sentiment_results = perform_sentiment_analysis(text)
+                    st.write(sentiment_results)
 
-            # Visualize the count of sentiment categories
-            st.subheader("Sentiment Distribution")
-            sentiment_counts = {
-                "Positive": 0,
-                "Negative": 0,
-                "Neutral": 0
-            }
-
-            if sentiment_label == "Positive":
-                sentiment_counts["Positive"] = 1
-            elif sentiment_label == "Negative":
-                sentiment_counts["Negative"] = 1
-            else:
-                sentiment_counts["Neutral"] = 1
-
-            st.bar_chart(sentiment_counts)
-
+                    # Visualize the count and frequency of sentiment results
+                    sentiment_counts = sentiment_results["Sentiment"].value_counts()
+                    st.subheader("Sentiment Distribution")
+                    st.bar_chart(sentiment_counts)
     else:
         st.warning("Please enter or upload text data for analysis.")
 
 # Definitions
-st.header("Navigator's Handbook")
+st.header("Definitions:")
 st.markdown(
     "**Word Cloud:** A visual representation of frequently occurring words in a text, where the size of each word is proportional to its frequency.")
 st.markdown(
@@ -154,7 +141,7 @@ st.markdown(
 # Additional Information and Contact
 st.header("Further Assistance and Customization")
 st.markdown(
-    "For personalized assistance, suggestions, or customization, feel free to reach out to:")
+    "For personalized assistance, suggestions, or customization, feel free to reach out to us:")
 st.markdown(
     "- **Email:** [mpailden@gmail.com](mailto:mpailden@gmail.com)")
 st.markdown(
